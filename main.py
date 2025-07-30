@@ -1,47 +1,37 @@
+import numpy as np
 import data
+import cluster
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import re
+import scipy.stats as stats
+from sklearn.metrics import silhouette_score
 
 
 def main():
     df = data.load_data()
-
-    df = df.dropna(subset=["Is your primary role within your company related to tech/IT?"])
-
-    df.to_clipboard(index=False)  # Kopiere DataFrame in die Zwischenablage
-
-    corr = df["Job_ITWorker"].corr(df["Is your primary role within your company related to tech/IT?"])
-    print(f"Korrelation: {corr:.3f}")
-
-    #print(df["Is your primary role within your company related to tech/IT?"].head(100))
-
-    df["Job_TechRole"] = ((df["Job_ITWorker"] == 1)).astype(int)
+    #df.info()
+    #df.describe(include='all')
     
-    # Annahme: Spalte enthält "Yes"/"No" oder 1/0
-    df_clean = df[df["Is your primary role within your company related to tech/IT?"].isin([1, 0])]
-
-
-    # Kreuztabelle erzeugen
-    ct = pd.crosstab(
-        df_clean["Job_TechRole"],
-        df_clean["Is your primary role within your company related to tech/IT?"],
-        normalize="index"  # für Prozent je Zeile (optional)
-    )
-
+    df.to_clipboard(index=False)
     
 
-    # Heatmap anzeigen
-    plt.figure(figsize=(6, 4))
-    sns.heatmap(ct, annot=True, cmap="Blues", fmt=".1%", cbar=False)
-    plt.title("Wahrnehmung vs. Erkannt (Job_TechRole)")
-    plt.xlabel("Selbsteinschätzung: Tech/IT?")
-    plt.ylabel("System-Kategorie: IT-Rolle erkannt?")
-    plt.yticks([0.5, 1.5], ["Nein", "Ja"], rotation=0)
-    plt.tight_layout()
-    plt.show()
+    cluster.cluster(df)
+    cluster.cluster_and_visualize(df, k=2)
 
+    #cluster.cluster_and_plot(df, n_clusters=3)
 
+    # 1. Histogramm und KDE Plot
+    # plt.figure(figsize=(12, 5))
+    # plt.subplot(1, 2, 1)
+    # sns.histplot(df['Age_LogTransformed'], kde=True, bins=20)
+    # plt.title(f'Distribution of Age_LogTransformed')
+    # plt.xlabel('Age_LogTransformed')
+    # plt.ylabel('Frequency')
+    # plt.show()
+
+    # Sie können dies für 'If yes, what percentage of your work time...' wiederholen
 
 if __name__ == "__main__":
     main()
