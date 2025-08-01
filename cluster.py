@@ -8,6 +8,103 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+def find_optimal_pca_components(df: pd.DataFrame, variance_threshold: float = 0.90):
+    """
+    Analysiert die optimale Anzahl an Hauptkomponenten mittels der erklärten Varianz.
+
+    Args:
+        df (pd.DataFrame): Der sklierte Eingabe-DataFrame.
+        variance_threshold (float, optional): Der Schwellenwert für die gewünschte
+                                              erklärte Varianz. Standard ist 0.90 (90%).
+
+    Returns:
+        int: Die Anzahl der Komponenten, die benötigt werden, um den Schwellenwert zu erreichen.
+    """
+    # 1. PCA durchführen, um alle Komponenten zu berechnen
+    pca = PCA(n_components=None)
+    pca.fit(df)
+
+    # 2. Kumulierte erklärte Varianz berechnen
+    explained_variance_cumulative = np.cumsum(pca.explained_variance_ratio_)
+    
+    # 3. Optimale Anzahl an Komponenten finden
+    # Wir suchen den ersten Index, an dem der Schwellenwert erreicht oder überschritten wird
+    optimal_n_components = np.where(explained_variance_cumulative >= variance_threshold)[0][0] + 1
+    
+    # 4. Den Scree Plot zeichnen
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, len(explained_variance_cumulative) + 1), explained_variance_cumulative, marker='o', linestyle='--')
+    
+    # Hilfslinien und Markierungen hinzufügen
+    plt.axhline(y=variance_threshold, color='r', linestyle='--', label=f'{int(variance_threshold*100)}% erklärte Varianz')
+    plt.axvline(x=optimal_n_components, color='k', linestyle=':', label=f'Optimale Komponentenanzahl: {optimal_n_components}')
+    plt.legend(loc='best')
+    
+    plt.xlabel('Anzahl der Hauptkomponenten')
+    plt.ylabel('Kumulierte erklärte Varianz')
+    plt.title('Scree Plot zur Bestimmung der optimalen Komponentenanzahl')
+    plt.grid(True)
+    plt.show()
+
+    print(f"Um mindestens {int(variance_threshold*100)}% der Varianz zu erklären, werden {optimal_n_components} Komponenten benötigt.")
+    
+    return optimal_n_components
+
+
+def get_silvhouette_from_pcakmeans(df: pd.DataFrame, k: int, pca_components: int = 2):
+    df_copy = df.copy()
+    # --- 2. Dimensionalitätsreduktion mit PCA für die Visualisierung ---
+    pca = PCA(n_components=pca_components)
+    # Wende PCA auf die Originaldaten an (ohne die neue 'cluster'-Spalte)
+    principal_components = pca.fit_transform(df_copy)
+    kmeans = KMeans(n_clusters=k, init='k-means++', random_state=42, n_init=10)
+    df_copy['cluster'] = kmeans.fit_predict(principal_components)
+
+   # --- 3. Silhouette Score berechnen ---
+    silhouette_avg = silhouette_score(principal_components, df_copy['cluster'])
+    print(f'Silhouette Score für k={k}: {silhouette_avg}')
+
+    return silhouette_avg
+
+
+
+def cluster_and_visualize2(df: pd.DataFrame, k: int, pca_components: int = 2):
+    df_copy = df.copy()
+    # --- 2. Dimensionalitätsreduktion mit PCA für die Visualisierung ---
+    pca = PCA(n_components=pca_components)
+    # Wende PCA auf die Originaldaten an (ohne die neue 'cluster'-Spalte)
+    principal_components = pca.fit_transform(df_copy)
+    kmeans = KMeans(n_clusters=k, init='k-means++', random_state=42, n_init=10)
+    df_copy['cluster'] = kmeans.fit_predict(principal_components)
+
+    pca_df = pd.DataFrame(
+        data=principal_components, 
+        columns=['Hauptkomponente 1', 'Hauptkomponente 2']
+    )
+    pca_df['cluster'] = df_copy['cluster']
+
+    # --- 3. Cluster visualisieren ---
+    # plt.figure(figsize=(12, 8))
+    # sns.scatterplot(
+    #     x="Hauptkomponente 1",
+    #     y="Hauptkomponente 2",
+    #     hue="cluster",
+    #     palette=sns.color_palette("hsv", n_colors=k),
+    #     data=pca_df,
+    #     legend="full",
+    #     alpha=0.8
+    # )
+    # plt.title(f'Cluster-Visualisierung mit PCA (k={k})')
+    # plt.grid(True)
+    # plt.show()
+
+    return pca_df
+
 def cluster_and_visualize(df: pd.DataFrame, k: int):
     """
     Führt K-Means-Clustering und PCA-Visualisierung auf einem DataFrame durch.

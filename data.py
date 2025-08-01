@@ -416,7 +416,7 @@ def load_data():
     df = scale_dataframe_standard(df)
 
     #job rollen entfernen (fürs erste)
-    df.drop(columns=[col for col in df.columns if col.startswith('Job_')], inplace=True)
+    #df.drop(columns=[col for col in df.columns if col.startswith('Job_')], inplace=True)
 
     return df
 
