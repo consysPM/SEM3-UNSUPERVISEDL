@@ -10,22 +10,28 @@ from sklearn.metrics import silhouette_score
 
 
 def main():
+    show_cluster_visualization = True
+    show_cluster_profiles = True
+    #daten vorbereiten
     df = data.load_data()
-    #df.info()
-    #df.describe(include='all')
-    
-    df.to_clipboard(index=False)
-    #cluster.find_optimal_pca_components(df, variance_threshold=0.90)
+
+    #evaluiere optimale anzahl von cluster, beste bewertete cluster-anzahl wird für die weitere analyse verwendet
     hScore = 0
     hK = 0
     for k in range(2, 11):
-        score = cluster.get_silvhouette_from_pcakmeans(df, k=k, pca_components=2)
+        score = cluster.evaluate_clusters(df, k=k, pca_components=2)
         if score > hScore:
             hScore = score
             hK = k
 
     print(f"New best silhouette score: {hScore} for k={hK}")
-    pca_df = cluster.cluster_and_visualize2(df, k=hK, pca_components=2)
+    pca_df = cluster.reduce_and_cluster(df, k=hK, pca_components=2)
+
+    #visualize the clusters
+    if show_cluster_visualization:
+        cluster.visualize_clusters(pca_df, k=hK)
+
+
     df['cluster'] = pca_df['cluster']
 
 
@@ -40,7 +46,13 @@ def main():
     print("Cluster-Profile (Mittelwerte der skalierten Merkmale pro Cluster):")
     print(cluster_profiles)
 
+    if show_cluster_profiles:
+        # --- Schritt 4: Visualisierung der Cluster-Profile ---
+        # Hier verwenden wir eine Heatmap, um die Mittelwerte der Cluster zu visualisieren.
+        # Dies hilft, Muster und Unterschiede zwischen den Clustern zu erkennen.
+        visualize_clusterprofiles(cluster_profiles)
 
+def visualize_clusterprofiles(cluster_profiles):
     plt.figure(figsize=(12, 10)) # Passe die Größe bei Bedarf an
     sns.heatmap(
         cluster_profiles, 
@@ -66,6 +78,9 @@ def main():
     # plt.show()
 
     # Sie können dies für 'If yes, what percentage of your work time...' wiederholen
+
+    #OPTIONAL: BOX-PLOT
+
 
 if __name__ == "__main__":
     main()

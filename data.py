@@ -289,28 +289,9 @@ def scale_dataframe_standard(df: pd.DataFrame) -> pd.DataFrame:
     print(df_scaled.head())
 
     return df_scaled
-
-# --- Beispielanwendung (Annahme: df_preprocessed ist Ihr vorbereitetes DataFrame) ---
-# Ersetzen Sie dies durch Ihr tatsächliches DataFrame, das alle kodierten Features enthält.
-# Beispiel:
-# data_example = {
-#     'Feature_A_Score': [1, 2, 3, 4, 5],
-#     'Feature_B_OneHot_Val1': [0, 1, 0, 1, 0],
-#     'Feature_C_OneHot_Val2': [1, 0, 1, 0, 1],
-#     'Age_LogTransformed': [3.1, 3.5, 3.7, 3.9, 4.0]
-# }
-# df_example_preprocessed = pd.DataFrame(data_example)
-
-# df_scaled = scale_dataframe_standard(df_example_preprocessed)
-
-# Hinweis: Wenn Sie Ihre 'ordinal_encode_mental_health_data' Funktion
-# und die One-Hot-Encoding-Schritte in einer übergeordneten Funktion
-# (wie 'preprocess_for_clustering' aus der vorherigen Antwort) zusammenfassen,
-# wäre der Aufruf dieser Skalierungsfunktion der letzte Schritt innerhalb dieser übergeordneten Funktion,
-# bevor Sie zur PCA oder direkt zum Clustering übergehen.
     
 def load_data():
-    # Beispielhafte Daten
+    # daten von mental health survey laden
     df = pd.read_csv('mental-heath-in-tech-2016_20161114.csv')
     # nur nicht selbständige Personen
     df = df[df["Are you self-employed?"] != 1]
@@ -318,7 +299,7 @@ def load_data():
 
     #alter normalisieren
     df["Gender_Normalized"] = df["What is your gender?"].apply(normalize_gender)
-    # Dummies für Geschlecht erstellen und an DataFrame anhängen
+    # Dummies(One-Hot) für Geschlecht erstellen und an DataFrame anhängen
     gender_dummies = pd.get_dummies(df["Gender_Normalized"], prefix="Gender").astype(int)
     df = pd.concat([df, gender_dummies], axis=1)
 
@@ -329,9 +310,9 @@ def load_data():
     df["Age_Cleaned"]  = ages_imputed.astype(int)
 
 
-    # Spalte mit Rollen-Mengen
+    # Spalte mit Rollen als Liste {ITWorker, Designer, Management, Support, Sales, Other} erstellen
     df["JobRoles"] = df["Which of the following best describes your work position?"].apply(detect_roles)
-    # In DataFrame mit passenden Spaltennamen umwandeln
+    # MultiLabelBinarizer verwenden, um die Rollen in separate Spalten zu kodieren
     mlb = MultiLabelBinarizer()
     roles_encoded = mlb.fit_transform(df["JobRoles"])
     roles_df = pd.DataFrame(roles_encoded, columns=[f"Job_{role}" for role in mlb.classes_])
@@ -347,9 +328,9 @@ def load_data():
     df.drop(columns=["Why or why not?", "Why or why not?.1", "What US state or territory do you work in?", "What US state or territory do you live in?"], inplace=True)
 
 
+    #spalten mit mehr als 50% fehlenden Werten entfernen
     missing_data = (df.isnull().sum() / df.shape[0]) * 100
     print((missing_data[missing_data >= 50]).sort_values(ascending=False))
-    #spalten mit mehr als 50% fehlenden Werten entfernen
     df.dropna(thresh=df.shape[0] * 0.5, axis=1, inplace=True)
     
     #spalten mit fehlenden werten (text) durch unknown ersetzen
@@ -394,28 +375,23 @@ def load_data():
     df["LeaveEase_Score"] = imputer.fit_transform(df[["LeaveEase_Score"]])
     df["OrgEmployees_Score"] = df["How many employees does your company or organization have?"].map(om_orgEmployees)
 
-
-
     # Spalte entfernen weil mapping stattdessen verwendet wird
     df.drop(columns=["If a mental health issue prompted you to request a medical leave from work, asking for that leave would be:"], inplace=True)
     df.drop(columns=["How many employees does your company or organization have?"], inplace=True)
 
-
     # vorerst entfernen (Länder, ordinales mapping nicht sinnvoll, stattdessen evtl. später onehot encoding)
     df.drop(columns=["What country do you live in?", "What country do you work in?"], inplace=True)
 
-
     df = ordinal_encode_mental_health_data(df)
 
-    # Log-Transformation für Alter
+    # Log-Transformation für Alter, weil Daten rechtsschief verteilt sind, macht daraus, so gut wie möglich, eine normalverteilte Verteilung
     df['Age_LogTransformed'] = np.log1p(df['Age_Cleaned'])
     df.drop(columns=['Age_Cleaned'], inplace=True)
 
-
-    #daten skalieren
+    #daten skalieren, 0 = Mittelwert, 1 = Standardabweichung, StandardScaler wird verwendet
     df = scale_dataframe_standard(df)
 
-    #job rollen entfernen (fürs erste)
+    #Optional: job rollen entfernen weil keine Relevanz
     #df.drop(columns=[col for col in df.columns if col.startswith('Job_')], inplace=True)
 
     return df

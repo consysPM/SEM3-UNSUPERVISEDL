@@ -56,7 +56,7 @@ def find_optimal_pca_components(df: pd.DataFrame, variance_threshold: float = 0.
     return optimal_n_components
 
 
-def get_silvhouette_from_pcakmeans(df: pd.DataFrame, k: int, pca_components: int = 2):
+def evaluate_clusters(df: pd.DataFrame, k: int, pca_components: int = 2):
     df_copy = df.copy()
     # --- 2. Dimensionalitätsreduktion mit PCA für die Visualisierung ---
     pca = PCA(n_components=pca_components)
@@ -71,9 +71,23 @@ def get_silvhouette_from_pcakmeans(df: pd.DataFrame, k: int, pca_components: int
 
     return silhouette_avg
 
+def visualize_clusters(df: pd.DataFrame, k: int, title: str = 'Cluster-Visualisierung'):
+    #Cluster visualisieren ---
+    plt.figure(figsize=(12, 8))
+    sns.scatterplot(
+        x="Hauptkomponente 1",
+        y="Hauptkomponente 2",
+        hue="cluster",
+        palette=sns.color_palette("hsv", n_colors=k),
+        data=df,
+        legend="full",
+        alpha=0.8
+    )
+    plt.title(f'{title} (k={k})')
+    plt.grid(True)
+    plt.show()
 
-
-def cluster_and_visualize2(df: pd.DataFrame, k: int, pca_components: int = 2):
+def reduce_and_cluster(df: pd.DataFrame, k: int, pca_components: int = 2):
     df_copy = df.copy()
     # --- 2. Dimensionalitätsreduktion mit PCA für die Visualisierung ---
     pca = PCA(n_components=pca_components)
@@ -105,7 +119,7 @@ def cluster_and_visualize2(df: pd.DataFrame, k: int, pca_components: int = 2):
 
     return pca_df
 
-def cluster_and_visualize(df: pd.DataFrame, k: int):
+def cluster_and_reduce(df: pd.DataFrame, k: int):
     """
     Führt K-Means-Clustering und PCA-Visualisierung auf einem DataFrame durch.
 
